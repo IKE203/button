@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>button</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f2f2f2, #e6e6ff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    #count {
+      font-size: 3rem;
+      margin-bottom: 40px;
+      color: #444;
+    }
+
+    button {
+
+      width: 120px;
+      height: 120px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 50%; /* 丸くする */
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background-color: #ff4d4d;
+    }
+
+    button:active {
+      background-color: #ba3434;
+      transform: scale(0.98);
+    }
+
+    #error-message {
+      color: rgb(0, 0, 0);
+      font-size: 1.5rem;
+      margin-top: 20px;
+      display: none; /* 最初は非表示 */
+    }
+  </style>
+</head>
+<body>
+  <h1></h1>
+  <div id="count">0</div>
+  <button id="pushButton">push</button>
+
+  <div id="error-message">現在カウント数を見ることは許されていません</div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script> 
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB6LmQwMebi4QsludNIOu9-qFpKypCTmck",
+      authDomain: "button-d12ee.firebaseapp.com",
+      databaseURL: "https://button-d12ee-default-rtdb.firebaseio.com",
+      projectId: "button-d12ee",
+      storageBucket: "button-d12ee.firebasestorage.app",
+      messagingSenderId: "464692547638",
+      appId: "1:464692547638:web:7774d843f34c64ee24c897",
+      measurementId: "G-6KMWYS2E8J"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const countEl = document.getElementById("count");
+    const button = document.getElementById("pushButton");
+    const errorMessage = document.getElementById("error-message");
+
+    const today = new Date().toISOString().split('T')[0];
+    const countRef = db.ref("counts/" + today);
+    const allCountsRef = db.ref("counts");
+
+    const DAILY_LIMIT = 10000;
+
+    //  2日前の日付を計算
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoKey = twoDaysAgo.toISOString().split('T')[0];
+
+    //  2日前のデータ削除
+    db.ref("counts/" + twoDaysAgoKey).remove()
+      .then(() => {
+        console.log(`${twoDaysAgoKey} のデータを削除しました`);
+      }).catch((err) => {
+        console.error(`削除失敗: ${err}`);
+      });
+
+    //   すべてのカウントを取得して合計を表示
+    allCountsRef.on("value", (snapshot) => {
+      const data = snapshot.val() || {};
+      let total = 0;
+      for (let date in data) {
+        total += data[date] || 0;
+      }
+      countEl.textContent = total;
+
+      const todayCount = data[today] || 0;
+      if (todayCount >= DAILY_LIMIT) {
+        button.disabled = true;
+       button.textContent = "今日の配布は終了しました";
+        button.style.backgroundColor = "#ccc";
+        button.style.cursor = "not-allowed";
+        errorMessage.style.display = "none";
+      }
+    }, (error) => {
+      // エラー時の処理
+      button.textContent = "今日の配布は終了しました";
+      button.style.backgroundColor = "#ccc";
+      button.style.cursor = "not-allowed";
+      console.error("読み取りエラー:", error);
+      countEl.style.display = "none";
+      errorMessage.textContent = "現在カウント数を見ることは許されていません";
+      errorMessage.style.display = "block";
+      button.disabled = true;
+    });
+
+    //  ボタンクリック時の処理
+    button.addEventListener("click", () => {
+     countRef.transaction((current) => {
+        if (!current) return 1;
+        if (current >= DAILY_LIMIT) return; // 上限超え防止
+        return current + 1;
+      });
+    });
+  </script>
+
+</body> 
+</html>
+
