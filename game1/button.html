@@ -106,7 +106,7 @@
         console.error(`削除失敗: ${err}`);
       });
 
-    //  すべてのカウントを取得して合計を表示
+    //   すべてのカウントを取得して合計を表示
     allCountsRef.on("value", (snapshot) => {
       const data = snapshot.val() || {};
       let total = 0;
