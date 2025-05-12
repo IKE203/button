@@ -63,79 +63,88 @@
   <div id="count">0</div>
   <button id="pushButton">push</button>
 
-  <div id="error-message">時が来るのを待て</div>
+  <div id="error-message">現在カウント数を見ることは許されていません</div>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script> 
 
-<script>
-  
-  const firebaseConfig = {
-    apiKey: "AIzaSyB6LmQwMebi4QsludNIOu9-qFpKypCTmck",
-    authDomain: "button-d12ee.firebaseapp.com",
-    databaseURL: "https://button-d12ee-default-rtdb.firebaseio.com",
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyB6LmQwMebi4QsludNIOu9-qFpKypCTmck",
+      authDomain: "button-d12ee.firebaseapp.com",
+      databaseURL: "https://button-d12ee-default-rtdb.firebaseio.com",
+      projectId: "button-d12ee",
+      storageBucket: "button-d12ee.firebasestorage.app",
+      messagingSenderId: "464692547638",
+      appId: "1:464692547638:web:7774d843f34c64ee24c897",
+      measurementId: "G-6KMWYS2E8J"
+    };
 
-    //databaseURL: "https://invalid-url.firebaseio.com",//エラーメッセージのテスト用
-
-    projectId: "button-d12ee",
-    storageBucket: "button-d12ee.firebasestorage.app",
-    messagingSenderId: "464692547638",
-    appId: "1:464692547638:web:7774d843f34c64ee24c897",
-    measurementId: "G-6KMWYS2E8J"
-  };
-
-  // Firebase 初期化
-  firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-
-    const today = new Date().toISOString().split('T')[0];
-    const countRef = db.ref("counts/" + today);
-    const limit =100;
 
     const countEl = document.getElementById("count");
     const button = document.getElementById("pushButton");
     const errorMessage = document.getElementById("error-message");
 
-    
+    const today = new Date().toISOString().split('T')[0];
+    const countRef = db.ref("counts/" + today);
+    const allCountsRef = db.ref("counts");
 
-    // リアルタイムで今日のカウントを表示・制限チェック
-  countRef.on("value", (snapshot) => {
-    const count = snapshot.val() || 0;
-    countEl.textContent = count;
+    const DAILY_LIMIT = 10000;
 
-    if (count >= limit) {
-      /*button.disabled = true;
-      button.textContent = "今日の上限に達しました";
+    //  2日前の日付を計算
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoKey = twoDaysAgo.toISOString().split('T')[0];
+
+    //  2日前のデータ削除
+    db.ref("counts/" + twoDaysAgoKey).remove()
+      .then(() => {
+        console.log(`${twoDaysAgoKey} のデータを削除しました`);
+      }).catch((err) => {
+        console.error(`削除失敗: ${err}`);
+      });
+
+    //  すべてのカウントを取得して合計を表示
+    allCountsRef.on("value", (snapshot) => {
+      const data = snapshot.val() || {};
+      let total = 0;
+      for (let date in data) {
+        total += data[date] || 0;
+      }
+      countEl.textContent = total;
+
+      const todayCount = data[today] || 0;
+      if (todayCount >= DAILY_LIMIT) {
+        button.disabled = true;
+       button.textContent = "今日の配布は終了しました";
+        button.style.backgroundColor = "#ccc";
+        button.style.cursor = "not-allowed";
+        errorMessage.style.display = "none";
+      }
+    }, (error) => {
+      // エラー時の処理
+      button.textContent = "今日の配布は終了しました";
       button.style.backgroundColor = "#ccc";
       button.style.cursor = "not-allowed";
-      errorMessage.style.display = "none"; // 上限に達していればエラーメッセージを非表示
-      */
-      
       console.error("読み取りエラー:", error);
-      countEl.style.display = "none"; // カウントを非表示
-      errorMessage.textContent = "読み取り制限を超えました。しばらく後に再試行してください。";
-      errorMessage.style.display = "block"; // エラーメッセージを表示
-      button.disabled = true; // ボタンを無効化
-      
-    }
-  },(error) => {
-      // Firebaseの読み取りに失敗した場合の処理
-      console.error("読み取りエラー:", error);
-      countEl.style.display = "none"; // カウントを非表示
-      errorMessage.textContent = "読み取り制限を超えました。しばらく後に再試行してください。";
-      errorMessage.style.display = "block"; // エラーメッセージを表示
-      button.disabled = true; // ボタンを無効化
+      countEl.style.display = "none";
+      errorMessage.textContent = "現在カウント数を見ることは許されていません";
+      errorMessage.style.display = "block";
+      button.disabled = true;
     });
 
-  // ボタンを押したときの処理
-  button.addEventListener("click", () => {
-    countRef.transaction((current) => {
-      if (!current) return 1;
-      if (current >= limit) return; // 上限超えを防ぐ
-      return current + 1;
+    //  ボタンクリック時の処理
+    button.addEventListener("click", () => {
+     countRef.transaction((current) => {
+        if (!current) return 1;
+        if (current >= DAILY_LIMIT) return; // 上限超え防止
+        return current + 1;
+      });
     });
-  });
-</script>
-</body>
+  </script>
+
+</body> 
 </html>
 
