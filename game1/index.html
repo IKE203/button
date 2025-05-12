@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>button</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f2f2f2, #e6e6ff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    #count {
+      font-size: 3rem;
+      margin-bottom: 40px;
+      color: #444;
+    }
+
+    button {
+
+      width: 120px;
+      height: 120px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background-color: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 50%; /* 丸くする */
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background-color: #ff4d4d;
+    }
+
+    button:active {
+      background-color: #ba3434;
+      transform: scale(0.98);
+    }
+
+    #error-message {
+      color: rgb(0, 0, 0);
+      font-size: 1.5rem;
+      margin-top: 20px;
+      display: none; /* 最初は非表示 */
+    }
+  </style>
+</head>
+<body>
+  <h1></h1>
+  <div id="count">0</div>
+  <button id="pushButton">push</button>
+
+  <div id="error-message">時が来るのを待て</div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script> 
+
+<script>
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyB6LmQwMebi4QsludNIOu9-qFpKypCTmck",
+    authDomain: "button-d12ee.firebaseapp.com",
+    databaseURL: "https://button-d12ee-default-rtdb.firebaseio.com",
+
+    //databaseURL: "https://invalid-url.firebaseio.com",//エラーメッセージのテスト用
+
+    projectId: "button-d12ee",
+    storageBucket: "button-d12ee.firebasestorage.app",
+    messagingSenderId: "464692547638",
+    appId: "1:464692547638:web:7774d843f34c64ee24c897",
+    measurementId: "G-6KMWYS2E8J"
+  };
+
+  // Firebase 初期化
+  firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const today = new Date().toISOString().split('T')[0];
+    const countRef = db.ref("counts/" + today);
+    const limit =100;
+
+    const countEl = document.getElementById("count");
+    const button = document.getElementById("pushButton");
+    const errorMessage = document.getElementById("error-message");
+
+    
+
+    // リアルタイムで今日のカウントを表示・制限チェック
+  countRef.on("value", (snapshot) => {
+    const count = snapshot.val() || 0;
+    countEl.textContent = count;
+
+    if (count >= limit) {
+      /*button.disabled = true;
+      button.textContent = "今日の上限に達しました";
+      button.style.backgroundColor = "#ccc";
+      button.style.cursor = "not-allowed";
+      errorMessage.style.display = "none"; // 上限に達していればエラーメッセージを非表示
+      */
+      
+      console.error("読み取りエラー:", error);
+      countEl.style.display = "none"; // カウントを非表示
+      errorMessage.textContent = "読み取り制限を超えました。しばらく後に再試行してください。";
+      errorMessage.style.display = "block"; // エラーメッセージを表示
+      button.disabled = true; // ボタンを無効化
+      
+    }
+  },(error) => {
+      // Firebaseの読み取りに失敗した場合の処理
+      console.error("読み取りエラー:", error);
+      countEl.style.display = "none"; // カウントを非表示
+      errorMessage.textContent = "読み取り制限を超えました。しばらく後に再試行してください。";
+      errorMessage.style.display = "block"; // エラーメッセージを表示
+      button.disabled = true; // ボタンを無効化
+    });
+
+  // ボタンを押したときの処理
+  button.addEventListener("click", () => {
+    countRef.transaction((current) => {
+      if (!current) return 1;
+      if (current >= limit) return; // 上限超えを防ぐ
+      return current + 1;
+    });
+  });
+</script>
+</body>
+</html>
+
