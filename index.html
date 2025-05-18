@@ -94,6 +94,8 @@
     const DAILY_LIMIT = 10000;
 
     //  2日前の日付を計算
+
+    /*
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
     const twoDaysAgoKey = twoDaysAgo.toISOString().split('T')[0];
@@ -105,6 +107,8 @@
       }).catch((err) => {
         console.error(`削除失敗: ${err}`);
       });
+
+      */
 
     //   すべてのカウントを取得して合計を表示
     allCountsRef.on("value", (snapshot) => {
